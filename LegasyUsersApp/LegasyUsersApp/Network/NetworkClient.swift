@@ -12,24 +12,29 @@ enum NetworkError: String, Error {
 }
 
 protocol NetworkClientProtocol {
-    func fetchUsers(completion: @escaping (Result<[User], NetworkError>) -> Void)
+    func request<T: Decodable>(
+        url: URL,
+        completion: @escaping (Result<T, NetworkError>) -> Void
+    )
 }
 
 final class NetworkClient: NetworkClientProtocol {
-    let baseUrl = URL(string: "https://jsonplaceholder.typicode.com/users")!
-    
-    func fetchUsers(completion: @escaping (Result<[User], NetworkError>) -> Void) {
 
-        URLSession.shared.dataTask(with: baseUrl) { data, response, error in
+    func request<T: Decodable>(
+        url: URL,
+        completion: @escaping (Result<T, NetworkError>) -> Void
+    ) {
 
-            if let error = error {
+        URLSession.shared.dataTask(with: url) { data, _, error in
+
+            if error != nil {
                 DispatchQueue.main.async {
                     completion(.failure(.error))
                 }
                 return
             }
 
-            guard let data = data else {
+            guard let data else {
                 DispatchQueue.main.async {
                     completion(.failure(.error))
                 }
@@ -37,10 +42,10 @@ final class NetworkClient: NetworkClientProtocol {
             }
 
             do {
-                let decodedUsers = try JSONDecoder().decode([User].self, from: data)
+                let decoded = try JSONDecoder().decode(T.self, from: data)
 
                 DispatchQueue.main.async {
-                    completion(.success(decodedUsers))
+                    completion(.success(decoded))
                 }
 
             } catch {
