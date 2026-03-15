@@ -21,7 +21,8 @@ class UsersViewController: UIViewController, UITableViewDelegate, UITableViewDat
     private var users: [User] = []
     private var filteredUsers: [User] = []
     private var isSearching = false
-
+    private var networkClient: NetworkClientProtocol
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -31,6 +32,7 @@ class UsersViewController: UIViewController, UITableViewDelegate, UITableViewDat
         setupSearchBar()
         setupTableView()
         setupLoadingIndicator()
+        networkClient = NetworkClient()
 
         fetchUsers()
     }
@@ -78,51 +80,21 @@ class UsersViewController: UIViewController, UITableViewDelegate, UITableViewDat
         ])
     }
 
-    func fetchUsers() {
-
+    private func fetchUsers() {
         loadingIndicator.startAnimating()
-
-        let url = URL(string: "https://jsonplaceholder.typicode.com/users")!
-
-        URLSession.shared.dataTask(with: url) { data, response, error in
-
-            if let error = error {
-                DispatchQueue.main.async {
-                    self.loadingIndicator.stopAnimating()
-                    self.showError(error.localizedDescription)
-                }
-                return
+        networkClient.fetchUsers() { result in
+            switch result {
+            case .failure(let error):
+                print(error)
+                self.loadingIndicator.stopAnimating()
+            case .success(let users):
+                self.users = users
+                self.filteredUsers = users
+                
+                self.loadingIndicator.stopAnimating()
+                self.tableView.reloadData()
             }
-
-            guard let data = data else {
-                DispatchQueue.main.async {
-                    self.loadingIndicator.stopAnimating()
-                    self.showError("Invalid data received")
-                }
-                return
-            }
-
-            do {
-                let decodedUsers = try JSONDecoder().decode([User].self, from: data)
-
-                DispatchQueue.main.async {
-
-                    self.users = decodedUsers
-                    self.filteredUsers = decodedUsers
-
-                    self.loadingIndicator.stopAnimating()
-                    self.tableView.reloadData()
-                }
-
-            } catch {
-
-                DispatchQueue.main.async {
-                    self.loadingIndicator.stopAnimating()
-                    self.showError("Failed to decode users")
-                }
-            }
-
-        }.resume()
+        }
     }
 
     @objc
