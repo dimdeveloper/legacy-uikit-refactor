@@ -23,7 +23,6 @@ final class DefaultUserService: UserService {
     }
 
     func fetchUsers(completion: @escaping (Result<[User], NetworkError>) -> Void) {
-
         networkClient.request(url: url, completion: completion)
     }
 }

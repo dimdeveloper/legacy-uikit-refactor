@@ -18,7 +18,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // Create the window using the windowScene
         let window = UIWindow(windowScene: windowScene)
 
-        let rootVC = UsersViewController()
+        let rootVC = UsersViewController(userService: DefaultUserService(networkClient: NetworkClient()))
         let navigationController = UINavigationController(rootViewController: rootVC)
 
         window.rootViewController = navigationController

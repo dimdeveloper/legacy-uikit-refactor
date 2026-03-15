@@ -6,12 +6,7 @@
 
 import UIKit
 
-// Legacy implementation example.
-// This ViewController intentionally contains networking,
-// filtering, search logic and UI logic tightly coupled together.
-// The goal is to demonstrate refactoring in the `refactor` branch.
-
-class UsersViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UISearchBarDelegate {
+class UsersViewController: UIViewController {
 
     private let tableView = UITableView()
     private let searchBar = UISearchBar()
@@ -21,7 +16,16 @@ class UsersViewController: UIViewController, UITableViewDelegate, UITableViewDat
     private var users: [User] = []
     private var filteredUsers: [User] = []
     private var isSearching = false
-    private var networkClient: NetworkClientProtocol
+    private var userService: UserService
+    
+    init(userService: UserService) {
+        self.userService = userService
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -32,15 +36,8 @@ class UsersViewController: UIViewController, UITableViewDelegate, UITableViewDat
         setupSearchBar()
         setupTableView()
         setupLoadingIndicator()
-        networkClient = NetworkClient()
 
-        fetchUsers()
-    }
-
-    private func setupSearchBar() {
-        searchBar.placeholder = "Search users"
-        searchBar.delegate = self
-        navigationItem.titleView = searchBar
+        loadUsers()
     }
 
     private func setupTableView() {
@@ -80,17 +77,19 @@ class UsersViewController: UIViewController, UITableViewDelegate, UITableViewDat
         ])
     }
 
-    private func fetchUsers() {
+    private func loadUsers() {
         loadingIndicator.startAnimating()
-        networkClient.fetchUsers() { result in
+        userService.fetchUsers() { [weak self] result in
+            guard let self else { return }
+            
             switch result {
             case .failure(let error):
                 print(error)
                 self.loadingIndicator.stopAnimating()
+                self.showError(error.localizedDescription)
             case .success(let users):
                 self.users = users
                 self.filteredUsers = users
-                
                 self.loadingIndicator.stopAnimating()
                 self.tableView.reloadData()
             }
@@ -99,7 +98,7 @@ class UsersViewController: UIViewController, UITableViewDelegate, UITableViewDat
 
     @objc
     private func refreshPulled() {
-        fetchUsers()
+        loadUsers()
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             self.refreshControl.endRefreshing()
@@ -117,7 +116,9 @@ class UsersViewController: UIViewController, UITableViewDelegate, UITableViewDat
 
         present(alert, animated: true)
     }
+}
 
+extension UsersViewController: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView,
                    numberOfRowsInSection section: Int) -> Int {
 
@@ -157,8 +158,15 @@ class UsersViewController: UIViewController, UITableViewDelegate, UITableViewDat
 
         navigationController?.pushViewController(detailVC, animated: true)
     }
+}
 
-
+extension UsersViewController: UISearchBarDelegate {
+    private func setupSearchBar() {
+        searchBar.placeholder = "Search users"
+        searchBar.delegate = self
+        navigationItem.titleView = searchBar
+    }
+    
     func searchBar(_ searchBar: UISearchBar,
                    textDidChange searchText: String) {
 
@@ -170,10 +178,10 @@ class UsersViewController: UIViewController, UITableViewDelegate, UITableViewDat
         } else {
 
             isSearching = true
-
+            let query = searchText.lowercased()
             filteredUsers = users.filter {
-                $0.name.lowercased().contains(searchText.lowercased()) ||
-                $0.username.lowercased().contains(searchText.lowercased())
+                $0.name.lowercased().contains(query) ||
+                $0.username.lowercased().contains(query)
             }
         }
 
