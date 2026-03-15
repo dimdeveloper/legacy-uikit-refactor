@@ -8,7 +8,9 @@
 import Foundation
 
 enum NetworkError: String, Error {
-    case error = "Network error"
+    case requestFailed
+    case invalidData
+    case decodingFailed
 }
 
 protocol NetworkClientProtocol {
@@ -29,14 +31,14 @@ final class NetworkClient: NetworkClientProtocol {
 
             if error != nil {
                 DispatchQueue.main.async {
-                    completion(.failure(.error))
+                    completion(.failure(.requestFailed))
                 }
                 return
             }
 
             guard let data else {
                 DispatchQueue.main.async {
-                    completion(.failure(.error))
+                    completion(.failure(.invalidData))
                 }
                 return
             }
@@ -50,7 +52,7 @@ final class NetworkClient: NetworkClientProtocol {
 
             } catch {
                 DispatchQueue.main.async {
-                    completion(.failure(.error))
+                    completion(.failure(.decodingFailed))
                 }
             }
 
