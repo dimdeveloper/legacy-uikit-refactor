@@ -90,7 +90,8 @@ App
  │   └─ Users
  │       ├─ UsersViewController
  │       └─ UserCell
- │
+ │   └─ UserDetails
+ │       └─ UserDetailsViewController
  ├─ Services
  │   └─ UserService
  │
